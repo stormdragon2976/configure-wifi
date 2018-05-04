@@ -1,0 +1,109 @@
+#!/bin/bash
+# configure-wifi
+#
+# Copyright 2018, F123 Consulting, <information@f123.org>
+# Copyright 2018, Kyle, <kyle@free2.ml>
+#
+# This is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free
+# Software Foundation; either version 3, or (at your option) any later
+# version.
+#
+# This software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this package; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+#
+#--code--
+
+# Include the F123 script functions
+. /usr/lib/F123-includes/script_functions.sh
+
+# Be sure the wireless interface is up.
+ip link set up dev wlan0
+
+# Scan for available wifi networks and store them in an array.
+ifs=$IFS
+IFS=$'\n'
+for ESSID in $(iwlist wlan0 scan | grep ESSID | cut -d\" -f2); do
+	networks+=("$ESSID")
+done
+IFS=$ifs
+
+# List the wireless networks in range and prompt for the one to configure.
+while true; do
+	echo These are the wireless networks that can be found near you.
+	listed=1
+	for ESSID in "${networks[@]}"; do
+		echo ${listed}.  $ESSID
+		listed=$(($listed+1))
+	done
+	read -p "Which network would you like to use? " network
+	if ((network>0 && network<=listed-1)); then 
+		network=${networks[$((network-1))]}
+			break
+	fi
+done
+
+pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")"
+echo Connecting to ${network}...
+
+# Create the systemd network file if it doesn't already exist
+mkdir -p /etc/systemd/network
+cat > /etc/systemd/network/wlan0.network <<-endOfFile
+	[Match]
+	Name=wlan0
+		[Network]
+	DHCP=yes
+endOfFile
+
+# Configure wpa_supplicant
+mkdir -p /etc/wpa_supplicant
+cat > /etc/wpa_supplicant/wpa_supplicant-wlan0.conf <<-endOfFile
+	ctrl_interface=/var/run/wpa_supplicant
+	eapol_version=1
+	ap_scan=1
+	fast_reauth=1
+
+	endOfFile
+
+# Combine the network ESSID and password to add a Network section to the wpa_supplicant configuration file with an encrypted password,
+# or if no password is specified, add a Network section with no key management.
+if test -z $pass; then
+	cat >> /etc/wpa_supplicant/wpa_supplicant-wlan0.conf <<-endOfFile
+		network={
+		    ssid="$network"
+		    key_mgmt="NONE"
+		}
+	endOfFile
+else
+	wpa_passphrase "$network" "$pass" | grep -v \#psk >> /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+fi
+
+# Wifi can be a real bear, based on what adapter is being used and driver support.
+# In order to try to ensure that any Linux supported wireless adapter will work, we copy wpa_supplicant@.service from /usr/lib/systemd/system into /etc/systemd/system
+# and modify it to try nl80211 first, and failing that, to try wext. This should be the default wpa_supplicant@.service in any case, since
+# wpa_supplicant@.service and wpa_supplicant-nl80211@.service appear to work, (or not work) in the same way.
+cp /usr/lib/systemd/system/wpa_supplicant@.service /etc/systemd/system
+sed -i /etc/systemd/system/wpa_supplicant@.service -e 's/-c/-Dnl80211,wext -c/'
+
+# Enable networking and wifi related services
+systemctl enable --now systemd-networkd >& /dev/null
+systemctl enable --now wpa_supplicant@wlan0 >& /dev/null
+systemctl enable --now systemd-resolved >& /dev/null
+
+# Don't make any assumptions. Reload wpa_supplicant service in case wifi is being reconfigured.
+systemctl restart wpa_supplicant@wlan0
+
+# Remove any legacy version of resolv.conf and link the version from systemd-resolved
+rm -f /etc/resolv.conf
+ln -sf /var/run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+# It's a bit hacky, but it seems there's no better way to test connectivity. Within 5 seconds, if the network is still not connected, there is a problem.
+sleep 5
+ping -c 1 google.com >&/dev/null && echo Your wireless network connection has been configured and is now working. || echo There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct.
