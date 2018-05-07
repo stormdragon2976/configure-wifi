@@ -3,6 +3,7 @@
 #
 # Copyright 2018, F123 Consulting, <information@f123.org>
 # Copyright 2018, Kyle, <kyle@free2.ml>
+# Copyright 2018, Storm Dragon, <storm_dragon@linux-a11y.org>
 #
 # This is free software; you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free
@@ -21,9 +22,6 @@
 #
 #--code--
 
-# Include the F123 script functions
-. /usr/lib/F123-includes/script_functions.sh
-
 # Be sure the wireless interface is up.
 ip link set up dev wlan0
 
@@ -32,10 +30,11 @@ ifs=$IFS
 IFS=$'\n'
 for ESSID in $(iwlist wlan0 scan | grep ESSID | cut -d\" -f2); do
 	networks+=("$ESSID")
+	networks+=(" ")
 done
 IFS=$ifs
 
-# List the wireless networks in range and prompt for the one to configure.
+# Present the available networks in a selectable menu
 while true; do
 	echo These are the wireless networks that can be found near you.
 	listed=1
