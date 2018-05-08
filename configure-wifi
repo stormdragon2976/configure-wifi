@@ -24,6 +24,10 @@
 
 # Some useful settings and functions needed in this configurator
 
+# Setup for gettext localization
+export TEXTDOMAIN=configure-wifi
+export TEXTDOMAINDIR=/usr/share/locale
+
 # Get the coluns and lines of the "screen"
 cols=$(tput cols)
 lines=$(tput lines)
@@ -137,11 +141,9 @@ systemctl restart wpa_supplicant@wlan0
 rm -f /etc/resolv.conf
 ln -sf /var/run/systemd/resolve/resolv.conf /etc/resolv.conf
 
-# It's a bit hacky, but it seems there's no better way to test connectivity. Within 4 to 6 seconds, if the network is still not connected, there is a problem.
-sleep 4
-if ping -c 1 google.com >&/dev/null; then
-	msgbox "Your wireless network connection has been configured and is now working."
-else
-	sleep 2
-	ping -c 1 google.com >& /dev/null && msgbox "Your wireless network connection has been configured and is now working." ||msgbox "There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct."
-fi
+# Detect a connection. Timeout after 10 seconds if the connection is not detected.
+for testconn in {1..10}; do
+	ping -c1 google.com >& /dev/null && connected=1 && break
+	sleep 1
+done
+test $connected && msgbox "Your wireless network connection has been configured and is now working." ||msgbox "There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct."
