@@ -35,7 +35,7 @@ passwordbox() {
     # Args 1, Instructions for box.
     # args: 2 initial text (optional)
     dialog --backtitle "$(gettext "Enter text and press enter. Press escape to cancel.")" \
-        --passwordbox "$(gettext "$1")" $((lines - 2)) $cols "$2" --stdout
+        --passwordbox "$(gettext "$1")" $((lines - 4)) $cols "$2" --stdout
 }
 
 msgbox() {
@@ -62,7 +62,7 @@ menulist() {
     ifs="$IFS"
     IFS=$'\n'
     dialog --backtitle "$(gettext "Use the up and down arrow keys to find the option you want, then press enter to select it. Press escape to cancel.")" \
-        --menu "$(gettext "Please select your wireless network")" $((lines - 2)) $cols $optionSize $@ --stdout
+        --menu "$(gettext "Please select your wireless network")" $((lines - 4)) $cols $optionSize $@ --stdout
     IFS="$ifs"
 }
 
@@ -81,10 +81,10 @@ IFS=$ifs
 
 # Present the available networks in a selectable menu
 	network="$(menulist "${networks[@]}")"
-test -z$network && exit 0
+test -z $network && exit 0
 
 pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")" || exit 0
-infobox "Connecting to ${network}...'
+infobox "Connecting to ${network}..."
 
 # Create the systemd network file if it doesn't already exist
 mkdir -p /etc/systemd/network
