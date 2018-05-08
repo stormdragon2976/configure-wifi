@@ -34,8 +34,8 @@ passwordbox() {
     # Returns: text entered by the user
     # Args 1, Instructions for box.
     # args: 2 initial text (optional)
-    dialog --backtitle "$(gettext "Enter text and press enter.")" \
-        --passwordbox "$(gettext "$1")" $lines $cols "$2" --stdout
+    dialog --backtitle "$(gettext "Enter text and press enter. Press escape to cancel.")" \
+        --passwordbox "$(gettext "$1")" $((lines - 2)) $cols "$2" --stdout
 }
 
 msgbox() {
@@ -44,17 +44,10 @@ msgbox() {
 dialog --msgbox "$(gettext "$*")" $lines $cols
 }
 
-yesno() {
-    # Returns: Yes or No
-    # Args: Question to user.
-    # Called  in if $(yesno) == "Yes"
-    # Or variable=$(yesno)
-    dialog --yesno "$(gettext "$*")" $lines $cols --stdout
-    if [[ $? -eq 0 ]]; then
-        echo "Yes"
-    else
-        echo "No"
-    fi
+infobox() {
+# Returns: None
+# Shows the provided message on the screen with no buttons.
+dialog --infobox "$(gettext "$*")" $lines $cols
 }
 
 menulist() {
@@ -68,8 +61,8 @@ menulist() {
     fi
     ifs="$IFS"
     IFS=$'\n'
-    dialog --backtitle "$(gettext "Use the up and down arrow keys to find the option you want, then press enter to select it.")" \
-        --menu "$(gettext "Please select your wireless network")" $lines $cols $optionSize $@ --stdout
+    dialog --backtitle "$(gettext "Use the up and down arrow keys to find the option you want, then press enter to select it. Press escape to cancel.")" \
+        --menu "$(gettext "Please select your wireless network")" $((lines - 2)) $cols $optionSize $@ --stdout
     IFS="$ifs"
 }
 
@@ -77,6 +70,7 @@ menulist() {
 ip link set up dev wlan0
 
 # Scan for available wifi networks and store them in an array.
+infobox "Scanning for available wireless networks ..."
 ifs=$IFS
 IFS=$'\n'
 for ESSID in $(iwlist wlan0 scan | grep ESSID | cut -d\" -f2); do
@@ -87,9 +81,10 @@ IFS=$ifs
 
 # Present the available networks in a selectable menu
 	network="$(menulist "${networks[@]}")"
+test -z$network && exit 0
 
-pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")"
-echo Connecting to ${network}...
+pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")" || exit 0
+infobox "Connecting to ${network}...'
 
 # Create the systemd network file if it doesn't already exist
 mkdir -p /etc/systemd/network
