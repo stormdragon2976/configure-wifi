@@ -30,14 +30,6 @@ lines=$(tput lines)
 # Settings to improve accessibility of dialog.
 export DIALOGOPTS='--insecure --no-lines --visit-items'
 
-inputbox() {
-    # Returns: text entered by the user
-    # Args 1, Instructions for box.
-    # args: 2 initial text (optional)
-    dialog --backtitle "$(gettext "Enter text and press enter.")" \
-        --inputbox "$(gettext "$1")" $lines $cols "$2" --stdout
-}
-
 passwordbox() {
     # Returns: text entered by the user
     # Args 1, Instructions for box.
@@ -65,56 +57,6 @@ yesno() {
     fi
 }
 
-get_keypress() {
-    # Returnes the pressed key.
-    # There arre two ways to use this function.
-    # first way, get_keypress variableName
-    # Second way variableName="$(get_keypress)"
-    # This variable name is long to absolutely minimize possibility of collision.
-    local getKeypressFunctionReturnVariable=$1
-    local returnedKeypress
-    # Unset IFS to capture any key that is pressed.
-    local ifs="$IFS"
-    unset IFS
-    read -sn1 returnedKeypress
-    # Restore IFS
-    IFS="$ifs"
-    if [[ $getKeypressFunctionReturnVariable ]]; then
-        eval $getKeypressFunctionReturnVariable="'$returnedKeypress'"
-    else
-        echo "$returnedKeypress"
-    fi
-}
-
-checklist() {
-    # Args: minimum group 2, multiples of 2, "tag" "choice"
-    # returns: all selected tags
-    # Descriptions with & as the first letter are checked by default (optional).
-      local menuList
-    if [[ $((${#@} / 2)) -gt $((lines - 5)) ]]; then
-        local optionSize=$((lines - 5))
-    else
-        local optionSize=$((${#@} / 2))
-    fi
-    ifs="$IFS"
-    IFS=$'\n'
-    dialog --backtitle "$(gettext "Choose Multiselection: Please choose all that apply by arrowing to the option and pressing space. Checked items will have an asterisk (*).")" \
-        --checklist "$(gettext "Please select the applicable options")" $lines $cols $optionSize $(
-        while [[ $# -gt 0 ]]; do
-            echo "$1"
-            shift
-            if [[ "${1::1}" == "&" ]]; then
-            echo "${1:1}"
-            echo "ON"
-        else
-            echo "$1"
-            echo "OFF"
-        fi
-        shift
-    done) --stdout
-    IFS="$ifs"
-}
-
 menulist() {
     # Args: minimum group 2, multiples of 2, "tag" "choice"
     # returns: selected tag
@@ -127,51 +69,10 @@ menulist() {
     ifs="$IFS"
     IFS=$'\n'
     dialog --backtitle "$(gettext "Use the up and down arrow keys to find the option you want, then press enter to select it.")" \
-        --menu "$(gettext "Please select one")" $lines $cols $optionSize $@ --stdout
+        --menu "$(gettext "Please select your wireless network")" $lines $cols $optionSize $@ --stdout
     IFS="$ifs"
 }
 
-radiolist() {
-    # Args: minimum group 2, multiples of 2, "tag" "choice"
-    # returns: single selected tag
-    # The description with & as the first letter is checked by default (optional).
-    if [[ $((${#@} / 2)) -gt $((lines - 5)) ]]; then
-        local optionSize=$((lines - 5))
-    else
-        local optionSize=$((${#@} / 2))
-    fi
-    ifs="$IFS"
-    IFS=$'\n'
-        dialog --backtitle "$(gettext "Choose Single selection: Please choose one by arrowing to the option and pressing space. The checked item will have an asterisk (*).")" \
-        --radiolist "$(gettext "Please select one")" $lines $cols $optionSize $(
-        while [[ $# -gt 0 ]]; do
-            echo "$1"
-            shift
-            if [[ "${1::1}" == "&" ]]; then
-                echo "${1:1}"
-                echo "ON"
-            else
-                echo "$1"
-                echo "OFF"
-            fi
-            shift
-        done) --stdout
-    IFS="$ifs"
-}
-
-continue_prompt() {
-    # Returnes: none
-    # Optional args: Prompt text
-    local promptText="${1:-When you understand and are ready, press any key to continue:}"
-    local continue
-    echo "$promptText "
-    # Unset IFS to capture any key that is pressed.
-    local ifs="$IFS"
-    unset IFS
-    read -sn1 continue
-    # Restore IFS
-    IFS="$ifs"
-}
 # Be sure the wireless interface is up.
 ip link set up dev wlan0
 
@@ -185,18 +86,7 @@ done
 IFS=$ifs
 
 # Present the available networks in a selectable menu
-while true; do
-    if [[ $((${#@} / 2)) -gt $((lines - 5)) ]]; then
-        local optionSize=$((lines - 5))
-    else
-        local optionSize=$((${#@} / 2))
-    fi
-    ifs="$IFS"
-    IFS=$'\n'
-    dialog --backtitle "$(gettext "Use the up and down arrow keys to find the option you want, then press enter to select it.")" \
-        --menu "$(gettext "Please select one")" $lines $cols $optionSize $@ --stdout
-    IFS="$ifs"
-}
+	network="$(menulist "${networks[@]}")"
 
 pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")"
 echo Connecting to ${network}...
@@ -254,4 +144,4 @@ ln -sf /var/run/systemd/resolve/resolv.conf /etc/resolv.conf
 
 # It's a bit hacky, but it seems there's no better way to test connectivity. Within 5 seconds, if the network is still not connected, there is a problem.
 sleep 5
-ping -c 1 google.com >&/dev/null && echo Your wireless network connection has been configured and is now working. || echo There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct.
+ping -c 1 google.com >&/dev/null && msgbox "Your wireless network connection has been configured and is now working." || msgbox "There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct."
