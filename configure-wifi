@@ -84,8 +84,13 @@ for ESSID in $(iwlist wlan0 scan | grep ESSID | cut -d\" -f2); do
 done
 IFS=$ifs
 
-# Present the available networks in a selectable menu
+# Present the available networks in a selectable menu, only if networks can be found
+if test -z "$networks"; then
+	msgbox "Unable to get a list of networks. Either you have no wireless networks in range or there is a problem with your wireless adapter."
+	exit 0
+else
 	network="$(menulist "${networks[@]}")"
+fi
 test -z "$network" && exit 0
 
 pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")" || exit 0
