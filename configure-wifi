@@ -86,7 +86,7 @@ IFS=$ifs
 
 # Present the available networks in a selectable menu
 	network="$(menulist "${networks[@]}")"
-test -z $network && exit 0
+test -z "$network" && exit 0
 
 pass="$(passwordbox "Enter the password for ${network}. Just press the enter key if $network is unsecured.")" || exit 0
 infobox "Connecting to ${network}..."
