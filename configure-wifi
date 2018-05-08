@@ -27,6 +27,7 @@
 # Setup for gettext localization
 export TEXTDOMAIN=configure-wifi
 export TEXTDOMAINDIR=/usr/share/locale
+. gettext.sh
 
 # Get the coluns and lines of the "screen"
 cols=$(tput cols)
