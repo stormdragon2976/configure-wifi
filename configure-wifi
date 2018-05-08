@@ -137,6 +137,12 @@ systemctl restart wpa_supplicant@wlan0
 rm -f /etc/resolv.conf
 ln -sf /var/run/systemd/resolve/resolv.conf /etc/resolv.conf
 
-# It's a bit hacky, but it seems there's no better way to test connectivity. Within 5 seconds, if the network is still not connected, there is a problem.
+# It's a bit hacky, but it seems there's no better way to test connectivity. Within 4 to 8 seconds, if the network is still not connected, there is a problem.
+infobox "Attempting to connect to ${network}..."
 sleep 5
-ping -c 1 google.com >&/dev/null && msgbox "Your wireless network connection has been configured and is now working." || msgbox "There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct."
+if ping -c 1 google.com >&/dev/null; then
+	msgbox "Your wireless network connection has been configured and is now working."
+else
+	sleep 4
+	ping -c 1 google.com && msgbox "Your wireless network connection has been configured and is now working." ||msgbox "There was a problem configuring the wireless network. Be sure you selected the correct network, and that your password is correct."
+fi
