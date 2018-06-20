@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-05-07 23:48-0400\n"
+"POT-Creation-Date: 2018-06-19 23:00-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,4 +29,37 @@ msgstr ""
 
 #: configure-wifi:70
 msgid "Please select your wireless network"
+msgstr ""
+
+#: configure-wifi:78
+msgid "Scanning for available wireless networks ..."
+msgstr ""
+
+#: configure-wifi:89
+msgid ""
+"Unable to get a list of networks. Either you have no wireless networks in "
+"range or there is a problem with your wireless adapter."
+msgstr ""
+
+#: configure-wifi:96
+#, sh-format
+msgid ""
+"Enter the password for ${network}. Just press the enter key if $network is "
+"unsecured."
+msgstr ""
+
+#: configure-wifi:97
+#, sh-format
+msgid "Connecting to ${network}..."
+msgstr ""
+
+#: configure-wifi:155
+msgid ""
+"Your wireless network connection has been configured and is now working."
+msgstr ""
+
+#: configure-wifi:155
+msgid ""
+"There was a problem configuring the wireless network. Be sure you selected "
+"the correct network, and that your password is correct."
 msgstr ""
